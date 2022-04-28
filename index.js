@@ -1,23 +1,50 @@
-var rect = require('./rectangle')
+const http = require('http')
+const fs = require('fs')
+const path = require('path')
 
-function solveRect(l, b) {
-    console.log(`Solving for rectangle with l = ${l} and b = ${b}`)
+const hostname = 'localhost'
+const port = 3000
 
-   rect(l,b,(err,rectangle)=>{
-       if(err){
-           console.log(`Error: ${err.message}`)
-       }
-       else{
-            console.log(`The area of the rectangle of dimensions l = ${l} and b = ${b} is ${rectangle.area()}`)    
-            console.log(`The perimeter of the rectangle of dimensions l = ${l} and b = ${b} is ${rectangle.perimeter()}\n`)    
-       }
+const server = http.createServer((req, res) => {
+    console.log(`Request for ${req.url} by method ${req.method}`)
 
-   })
+    if (req.method == 'GET') {
+        var fileURL
+        if (req.url == '/') {
+            fileURL = '/index.html'
+        }
+        else { fileURL = req.url }
 
-   console.log('This statement is after the call to rect()\n')
-}
+        var filePath = path.resolve('./public' + fileURL)
+        const fileExt = path.extname(filePath)
+        if (fileExt == '.html') {
+            if (!fs.existsSync(filePath)) {
+                res.statusCode = 404
+                res.setHeader('Content-Type', 'text/html')
+                res.end(`<html><body><h1>Error 404: ${fileURL} not found</h1></body></html>`)
+                return;
+            }
+            else {
+                res.statusCode = 200
+                res.setHeader('Content-Type', 'text/html')
+                fs.createReadStream(filePath).pipe(res)
+            }
+        }
+        else {
+            res.statusCode = 404
+            res.setHeader('Content-Type', 'text/html')
+            res.end(`<html><body><h1>Error 404: ${fileURL} not an HTML file</h1></body></html>`)
+            return;
+        }
+    }
+    else {
+        res.statusCode = 404
+        res.setHeader('Content-Type', 'text/html')
+        res.end(`<html><body><h1>Error 404: ${req.method} not supported</h1></body></html>`)
+        return;
+    }
+})
 
-solveRect(2, 4)
-solveRect(3, 5)
-solveRect(0, 5)
-solveRect(-3, 4)
+server.listen(port, hostname, () => {
+    console.log(`Server running at http://${hostname}:${port}`)
+})
